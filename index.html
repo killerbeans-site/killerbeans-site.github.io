@@ -45,7 +45,6 @@ var getRatioInputs = async(charid, page) => {
 }
 
 var getScore = async(charid) => {
-	// let data = await request({"url": "https://zkillboard.com/api/characterID/2115421580/kills/pastSeconds/604800/"});
 	let total = undefined;
 	let page = 1;
 	while (true) {
@@ -65,6 +64,13 @@ var getScore = async(charid) => {
 	return [total.sum, total.count];
 }
 
+var getCharInfo = async(charid) => {
+	const url = `https://zkillboard.com/api/stats/characterID/${charid}/`;
+	const raw = await request({url});
+	const data = JSON.parse(raw);
+	return data.info;
+}
+
 var buttonPressed = () => {
 	let char_url = document.getElementById("inputUrl").value;
 	console.log(char_url);
@@ -74,25 +80,24 @@ var buttonPressed = () => {
 }
 
 var showScore = async(charid) => {
-	let display = document.getElementById("display");
+	const display = document.getElementById("display");
 	console.log("time to get score");
-	let [sum, count] = await getScore(charid);
+	const [sum, count] = await getScore(charid);
 	let score = sum / count;
 	score = Math.round(score * 100) / 100;
+	const info = await getCharInfo(charid);
 
-	let text = `${count} kills totaling ${sum} points => <b>${score}</b>`
+	let text = `In the past week, <b>${info.name}</b> got <b>${count}</b> kills totaling <b>${sum}</b> points for a score of <b>${score}</b>`;
 
 	display.innerHTML = text;
 }
 
-// window.setTimeout(getKills 5000);
 </script>
 <p>
 Paste in your character's zkill url:<br />
 <input type="text" id="inputUrl" value="https://zkillboard.com/character/2115421580/" style="width:100%;" /><br />
 <input type="submit" value="How elite am I?" onclick="buttonPressed()" /><br />
 <span id="display"></span>
-<aside>higher is better</aside>
 </p>
 </body>
 </html>
