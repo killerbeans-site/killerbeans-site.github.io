@@ -3,13 +3,46 @@
 <head>
 	<title></title>
 	<style type="text/css">body{max-width:650px;margin:40px auto;padding:0 10px;font:18px/1.5 -apple-system,BlinkMacSystemFont,"avenir next",avenir,"Segoe UI","lucida grande","helvetica neue",helvetica,"Fira Sans",roboto,noto,"Droid Sans",cantarell,oxygen,ubuntu,"franklin gothic medium","century gothic","Liberation Sans",sans-serif;color:#444}h1,h2,h3{line-height:1.2}</style>
+	<style type="text/css">
+.ring_holder {
+  display: inline-block;
+  height: 16px;
+  margin-left: 0px;
+  margin-right: 0px;
+  padding-left: 50%;
+}
+.lds-dual-ring {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+}
+.lds-dual-ring:after {
+  content: " ";
+  display: block;
+  width: 11px;
+  height: 11px;
+  margin: 1px;
+  border-radius: 50%;
+  border: 1px solid #222;
+  border-color: #222 transparent #222 transparent;
+  animation: lds-dual-ring 1.2s linear infinite;
+}
+@keyframes lds-dual-ring {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+</style>
 </head>
 <body>
 
 <script type="text/javascript">
 let sleep = ms => {
 	return new Promise(resolve => setTimeout(resolve, ms));
-}
+};
 
 let request = obj => {
     return new Promise((resolve, reject) => {
@@ -33,7 +66,7 @@ let request = obj => {
     });
 };
 
-var getRatioInputs = async(charid, page) => {
+const getRatioInputs = async(charid, page) => {
 	let raw = await request({"url": `https://zkillboard.com/api/characterID/${charid}/kills/pastSeconds/604800/page/${page}/`});
 	let data = JSON.parse(raw);
 	let out = data.reduce((acc, row) => {
@@ -42,9 +75,9 @@ var getRatioInputs = async(charid, page) => {
 		return acc;
 	}, {"sum": 0, "count": 0});
 	return out;
-}
+};
 
-var getScore = async(charid) => {
+const getScore = async(charid) => {
 	let total = undefined;
 	let page = 1;
 	while (true) {
@@ -60,42 +93,79 @@ var getScore = async(charid) => {
 		}
 		await sleep(2000);
 	}
+	if (total === undefined) {
+		return [0, 0];
+	}
 	console.log(total.sum / total.count);
 	return [total.sum, total.count];
-}
+};
 
-var getCharInfo = async(charid) => {
+const getCharInfo = async(charid) => {
 	const url = `https://zkillboard.com/api/stats/characterID/${charid}/`;
 	const raw = await request({url});
 	const data = JSON.parse(raw);
 	return data.info;
-}
+};
 
-var buttonPressed = () => {
+const buttonPressed = () => {
 	const char_url = document.getElementById("inputUrl").value;
 	const match = char_url.match(/character\/(\d+)/);
 	const char_id = RegExp.$1;
 	window.setTimeout(async() => showScore(char_id), 10);
-}
+};
 
-var showScore = async(charid) => {
+const placeSpinner = async () => {
+	const container = document.getElementById("spinnerholder");
+	container.innerHTML = '<div class="lds-dual-ring"></div>';
+};
+
+const removeSpinner = async () => {
+	const container = document.getElementById("spinnerholder");
+	container.innerHTML = "";
+};
+
+const showScore = async(charid) => {
+	urlSet(charid);
+	placeSpinner();
 	const display = document.getElementById("display");
 	console.log("time to get score");
 	const [sum, count] = await getScore(charid);
 	let score = sum / count;
 	score = Math.round(score * 100) / 100;
+	if (score === NaN) {
+		score = "lmao what a scrub";
+	}
 	const info = await getCharInfo(charid);
 
 	let text = `In the past week, <b>${info.name}</b> got <b>${count}</b> kills totaling <b>${sum}</b> points for a score of <b>${score}</b>`;
 
+	removeSpinner();
 	display.innerHTML = text;
+};
+
+const urlCheck = async() => {
+	const url = window.location.href;
+	const match = url.match(/\#(\d+)/);
+	if (match === undefined) {
+		return;
+	}
+	const char_id = RegExp.$1;
+	document.getElementById("inputUrl").value = `https://zkillboard.com/character/${char_id}`;
+	showScore(char_id);
+};
+
+const urlSet = async(char_id) => {
+	// window.location.assign(window.location.protocol + "//" + window.location.domain + "#" + char_id);
+	window.history.pushState("", "dfsfasd", `#${char_id}`);
 }
+
+window.onload = urlCheck;
 
 </script>
 <p>
 Paste in your character's zkill url:<br />
 <input type="text" id="inputUrl" value="https://zkillboard.com/character/94713109/" style="width:100%;" /><br />
-<input type="submit" value="How elite am I?" onclick="buttonPressed()" /><br />
+<input type="submit" value="How elite am I?" onclick="buttonPressed()" /> <div id="spinnerholder" class="ring_holder"></div><br />
 <span id="display"></span>
 </p>
 </body>
