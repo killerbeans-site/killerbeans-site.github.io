@@ -69,6 +69,9 @@ let request = obj => {
 const getRatioInputs = async(charid, page) => {
 	let raw = await request({"url": `https://zkillboard.com/api/characterID/${charid}/kills/pastSeconds/604800/page/${page}/`});
 	let data = JSON.parse(raw);
+	if (!Array.isArray(data)) {
+		return {"sum": 0, "count": 0};
+	}
 	let out = data.reduce((acc, row) => {
 		acc.sum += row.zkb.points;
 		acc.count += 1;
@@ -104,6 +107,9 @@ const getCharInfo = async(charid) => {
 	const url = `https://zkillboard.com/api/stats/characterID/${charid}/`;
 	const raw = await request({url});
 	const data = JSON.parse(raw);
+	if (data.info === undefined) {
+		return {"name": "nobody"};
+	}
 	return data.info;
 };
 
@@ -146,7 +152,7 @@ const showScore = async(charid) => {
 const urlCheck = async() => {
 	const url = window.location.href;
 	const match = url.match(/\#(\d+)/);
-	if (match === undefined) {
+	if (match === null) {
 		return;
 	}
 	const char_id = RegExp.$1;
